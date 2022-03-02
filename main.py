@@ -18,7 +18,7 @@ db = MongoClient[dbname]
 credit = db["documents"]
 counter = db["keep_track"]
 
-guildIDS = [886420794949910548, 837137054067326976, 883728322029322261]
+guildIDS = [886420794949910548, 883728322029322261]
 
 Seal = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/National_Emblem_of_the_People%27s_Republic_of_China_%282%29.svg/1200px-National_Emblem_of_the_People%27s_Republic_of_China_%282%29.svg.png"
 Flag = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Flag_of_the_People%27s_Republic_of_China.svg/800px-Flag_of_the_People%27s_Republic_of_China.svg.png"
