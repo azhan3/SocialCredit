@@ -17,7 +17,7 @@ dbname = "myProject"
 db = MongoClient[dbname]
 credit = db["documents"]
 counter = db["keep_track"]
-
+#837137054067326976
 guildIDS = [886420794949910548, 883728322029322261]
 
 Seal = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/National_Emblem_of_the_People%27s_Republic_of_China_%282%29.svg/1200px-National_Emblem_of_the_People%27s_Republic_of_China_%282%29.svg.png"
@@ -152,6 +152,7 @@ async def Lottery(message):
 ColorList = [discord.ButtonStyle.success, discord.ButtonStyle.danger, discord.ButtonStyle.blurple, discord.ButtonStyle.gray]
 async def CreateQuiz(message, num, right, Category, Difficulty, Correct, *args):
     QuizCounter = {}
+    buttons = []
     async def RightAnswers(interaction):
         if interaction.user.id not in QuizCounter:
             QuizCounter[interaction.user.id] = 10
@@ -162,18 +163,18 @@ async def CreateQuiz(message, num, right, Category, Difficulty, Correct, *args):
             print("WRONG")
     view = View()
     for i in range(1, num+1):
-        temp = Button(label=args[i], style=ColorList[i-1])
+        buttons.append(Button(label=args[i], style=ColorList[i-1]))
         if i == right:
-            temp.callback = RightAnswers
+            buttons[i-1].callback = RightAnswers
         else:
-            temp.callback = WrongAnswers
-        view.add_item(temp)
-    embed = discord.Embed(title="Official Government Social Credit Test", description=f"**Category:** {Category}\n**Difficulty:** {Difficulty}\n{html.unescape(args[0])}", color=0xCC3D35)
-    embed.set_thumbnail(url=Seal)
+            buttons[i-1].callback = WrongAnswers
+        view.add_item(buttons[i-1])
+    QuizEmbed = discord.Embed(title="Official Government Social Credit Test", description=f"**Category:** {Category}\n**Difficulty:** {Difficulty}\n{html.unescape(args[0])}", color=0xCC3D35)
+    QuizEmbed.set_thumbnail(url=Seal)
     #embed.set_image(url=args[-1])
     await message.channel.send("@here SOCIAL CREDIT TEST")
-    await message.channel.send(embed=embed, view=view)
-    await asyncio.sleep(30)
+    OriginalMessage = await message.channel.send(embed=QuizEmbed, view=view)
+    await asyncio.sleep(25)
     if len(QuizCounter) == 0:
         embed = discord.Embed(title="Social Credit Test Results", description=f"No one participated in the Social Credit Test\nThe Correct Answer is **{Correct}**", color=0xCC3D35)
         embed.set_thumbnail(url=Seal)
@@ -200,15 +201,13 @@ async def CreateQuiz(message, num, right, Category, Difficulty, Correct, *args):
     if len(Losers):
         embed.add_field(name="Losers", value="\n".join(Losers))
     await message.channel.send(embed=embed)
+    for i in range(len(buttons)):
+        print(buttons[i])
+        buttons[i].disabled = True
+    await OriginalMessage.edit(embed=QuizEmbed, view=view)
 
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
-    found = credit.find_one({"id": str(message.author.id)})
-    if found is None:
-        Add(message.author.id)
-    if randint(0, 100) == 23 or (message.content == "!quiz" and message.author.id == 420417488283500576):
+async def FetchQuiz(message):
+    def Get():
         r = requests.get('https://opentdb.com/api.php?amount=1').json()["results"][0]
         print(r)
         Difficulty = r["difficulty"]
@@ -221,8 +220,25 @@ async def on_message(message):
         random.shuffle(Choices)
         if r["type"] == "boolean":
             Choices = ['True', 'False']
-        print(Choices, CorrectAnswer, Choices.index(CorrectAnswer)+1)
-        await CreateQuiz(message, len(Choices), Choices.index(CorrectAnswer)+1, Category, Difficulty, CorrectAnswer, Question, *Choices, Flag)
+        return Difficulty, Category, Question, CorrectAnswer, WrongAnswer, Choices
+    while True:
+        Difficulty, Category, Question, CorrectAnswer, WrongAnswer, Choices = Get()
+        for i in Choices:
+            if len(i) > 80:
+                continue
+        break
+    await CreateQuiz(message, len(Choices), Choices.index(CorrectAnswer) + 1, Category, Difficulty, CorrectAnswer,
+                     Question, *Choices, Flag)
+blacklist = [690611213905952789]
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+    found = credit.find_one({"id": str(message.author.id)})
+    if found is None:
+        Add(message.author.id)
+    if randint(0, 30) == 23 or (message.content == "!quiz" and message.author.id not in blacklist):
+        await FetchQuiz(message)
 
     print(message.content)
 
