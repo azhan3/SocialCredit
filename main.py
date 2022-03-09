@@ -9,12 +9,12 @@ import requests
 import random
 import html
 from discord.ext.commands import has_permissions, CheckFailure
+import time
 
 
 intents = discord.Intents.default()
 intents.members = True
 bot = discord.Bot(intents=intents)
-print(bot.intents)
 username = urllib.parse.quote_plus('user')
 apiURI = 'mongodb://ALEX:rtXreOIhLVzGWIqz@cluster0-shard-00-00.mb4wu.mongodb.net:27017,cluster0-shard-00-01.mb4wu.mongodb.net:27017,cluster0-shard-00-02.mb4wu.mongodb.net:27017/myFirstDatabase?ssl=true&replicaSet=atlas-y3m5i3-shard-0&authSource=admin&retryWrites=true&w=majority'  # "mongodb+srv://ALEX:rtXreOIhLVzGWIqz@cluster0.mb4wu.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
 MongoClient = pymongo.MongoClient(apiURI)
@@ -24,7 +24,7 @@ credit = db["documents"]
 counter = db["keep_track"]
 BannedWords = db["banned_words"]
 # 837137054067326976
-guildIDS = [886420794949910548, 883728322029322261]
+guildIDS = [886420794949910548, 883728322029322261, 936131045374459934]
 
 Seal = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/National_Emblem_of_the_People%27s_Republic_of_China_%282%29.svg/1200px-National_Emblem_of_the_People%27s_Republic_of_China_%282%29.svg.png"
 Flag = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Flag_of_the_People%27s_Republic_of_China.svg/800px-Flag_of_the_People%27s_Republic_of_China.svg.png"
@@ -119,10 +119,8 @@ invites = {}
 
 @bot.event
 async def on_ready():
-    global guildIDS
-    guildIDS = [i.id for i in bot.guilds]
-    print(guildIDS)
-    print(credit.find_one({"id": "420417488283500576"}))
+    global QuizRunning
+    QuizRunning = {i.id: False for i in bot.guilds}
     for i in bot.guilds:
         invites[i.id] = await i.invites()
         guild = bot.get_guild(i.id)
@@ -130,7 +128,7 @@ async def on_ready():
             found = credit.find_one({"id": str(member.id)})
             if found is None and not member.bot:
                 Add(member.id)
-    print(invites)
+
 
 
 @bot.slash_command(guild_ids=guildIDS, name="social_credit", description="Check your social credit")
@@ -295,19 +293,36 @@ async def Lottery(message):
 ColorList = [discord.ButtonStyle.success, discord.ButtonStyle.danger, discord.ButtonStyle.blurple,
              discord.ButtonStyle.gray]
 
+Difficulties = {
+    "easy": 10,
+    "medium": 15,
+    "hard": 25
+}
+
+
 
 async def CreateQuiz(message, num, right, Category, Difficulty, Correct, *args):
+    print(QuizRunning)
+    if QuizRunning[message.guild.id] is True:
+        embed = discord.Embed(title="Official Government Statement", description=f"<@{message.author.id}>, there is already an ongoing quiz.",color=0xCC3D35)
+        embed.set_thumbnail(url=Seal)
+        await message.channel.send(embed=embed)
+        return
+    QuizRunning[message.guild.id] = True
     QuizCounter = {}
     buttons = []
+    QuizTime = time.time()
+    QuizLimit = 25
 
     async def RightAnswers(interaction):
         if interaction.user.id not in QuizCounter:
-            QuizCounter[interaction.user.id] = 10
+            AnswerTime = round(time.time() - QuizTime, 1)
+            QuizCounter[interaction.user.id] = [Difficulties[Difficulty] - round((Difficulties[Difficulty] / QuizLimit) * AnswerTime) + 5, AnswerTime]
             print("RIGHT")
 
     async def WrongAnswers(interaction):
         if interaction.user.id not in QuizCounter:
-            QuizCounter[interaction.user.id] = -25
+            QuizCounter[interaction.user.id] = [-25, round(time.time() - QuizTime, 1)]
             print("WRONG")
 
     view = View()
@@ -322,10 +337,16 @@ async def CreateQuiz(message, num, right, Category, Difficulty, Correct, *args):
                               description=f"**Category:** {Category}\n**Difficulty:** {Difficulty}\n{html.unescape(args[0])}",
                               color=0xCC3D35)
     QuizEmbed.set_thumbnail(url=Seal)
+    QuizEmbed.set_footer(text=f"{QuizLimit}.0s.")
     # embed.set_image(url=args[-1])
     await message.channel.send("@here SOCIAL CREDIT TEST")
     OriginalMessage = await message.channel.send(embed=QuizEmbed, view=view)
-    await asyncio.sleep(25)
+
+    for i in range(5):
+        await asyncio.sleep(5)
+        QuizEmbed.set_footer(text=f"{QuizLimit - (i+1) * 5}.0s.")
+        await OriginalMessage.edit(embed=QuizEmbed, view=view)
+    #await asyncio.sleep(QuizLimit)
     if len(QuizCounter) == 0:
         embed = discord.Embed(title="Social Credit Test Results",
                               description=f"No one participated in the Social Credit Test\nThe Correct Answer is **{Correct}**",
@@ -340,15 +361,15 @@ async def CreateQuiz(message, num, right, Category, Difficulty, Correct, *args):
         print("FOUND - " + str(found))
         if found is None:
             Add(key)
-        UpdateCredit(key, value)
-        if value < 0:
-            Losers.append(f"-25 Social Credit - <@!{key}>")
+        UpdateCredit(key, value[0])
+        if value[0] < 0:
+            Losers.append(f"{value[0]} Social Credit: <@!{key}> - {value[1]}s.")
         else:
-            Winners.append(f"+10 Social Credit - <@!{key}>")
+            Winners.append(f"+{value[0]} Social Credit: <@!{key}> - {value[1]}s.")
     print("Bac")
     print(QuizCounter)
     embed = discord.Embed(title="Social Credit Test Results",
-                          description=f"Results of the Social Credit Test\nThe Correct Answer is **{Correct}**",
+                          description=f"Results of the Social Credit Test\nThe Correct Answer is **{html.unescape(Correct)}**",
                           color=0xCC3D35)
     embed.set_thumbnail(url=Seal)
     if len(Winners):
@@ -360,7 +381,7 @@ async def CreateQuiz(message, num, right, Category, Difficulty, Correct, *args):
         print(buttons[i])
         buttons[i].disabled = True
     await OriginalMessage.edit(embed=QuizEmbed, view=view)
-
+    QuizRunning[message.guild.id] = False
 
 async def FetchQuiz(message):
     def Get():
@@ -388,7 +409,7 @@ async def FetchQuiz(message):
                      Question, *Choices, Flag)
 
 
-blacklist = [690611213905952789]
+blacklist = [672183400270004224]
 
 
 @bot.event
