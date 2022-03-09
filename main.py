@@ -308,7 +308,7 @@ async def CreateQuiz(message, num, right, Category, Difficulty, Correct, *args):
         embed.set_thumbnail(url=Seal)
         await message.channel.send(embed=embed)
         return
-    QuizRunning[message.guild.id] = True
+    QuizRunning[message.guild.id] = False
     QuizCounter = {}
     buttons = []
     QuizTime = time.time()
