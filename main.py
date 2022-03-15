@@ -302,27 +302,26 @@ Difficulties = {
 
 
 async def CreateQuiz(message, num, right, Category, Difficulty, Correct, *args):
-    print(QuizRunning)
-    if QuizRunning[message.guild.id] is True:
-        embed = discord.Embed(title="Official Government Statement", description=f"<@{message.author.id}>, there is already an ongoing quiz.",color=0xCC3D35)
-        embed.set_thumbnail(url=Seal)
-        await message.channel.send(embed=embed)
-        return
-    QuizRunning[message.guild.id] = False
     QuizCounter = {}
     buttons = []
     QuizTime = time.time()
     QuizLimit = 25
-
+    CurrentAnswers = []
     async def RightAnswers(interaction):
         if interaction.user.id not in QuizCounter:
             AnswerTime = round(time.time() - QuizTime, 1)
             QuizCounter[interaction.user.id] = [Difficulties[Difficulty] - round((Difficulties[Difficulty] / QuizLimit) * AnswerTime) + 5, AnswerTime]
+            CurrentAnswers.append(f"<@{interaction.user.id}> - {round(time.time() - QuizTime, 1)}s.")
+            QuizEmbed.set_field_at(0, name="Answers:", value="\n".join(CurrentAnswers))
+            await OriginalMessage.edit(embed=QuizEmbed, view=view)
             print("RIGHT")
 
     async def WrongAnswers(interaction):
         if interaction.user.id not in QuizCounter:
             QuizCounter[interaction.user.id] = [-25, round(time.time() - QuizTime, 1)]
+            CurrentAnswers.append(f"<@{interaction.user.id}> - {round(time.time() - QuizTime, 1)}s.")
+            QuizEmbed.set_field_at(0, name="Answers:", value="\n".join(CurrentAnswers))
+            await OriginalMessage.edit(embed=QuizEmbed, view=view)
             print("WRONG")
 
     view = View()
@@ -335,7 +334,7 @@ async def CreateQuiz(message, num, right, Category, Difficulty, Correct, *args):
         view.add_item(buttons[i - 1])
     QuizEmbed = discord.Embed(title="Official Government Social Credit Test",
                               description=f"**Category:** {Category}\n**Difficulty:** {Difficulty}\n{html.unescape(args[0])}",
-                              color=0xCC3D35)
+                              color=0xCC3D35).add_field(name="Answers:", value="None so far")
     QuizEmbed.set_thumbnail(url=Seal)
     QuizEmbed.set_footer(text=f"{QuizLimit}.0s.")
     # embed.set_image(url=args[-1])
@@ -381,7 +380,6 @@ async def CreateQuiz(message, num, right, Category, Difficulty, Correct, *args):
         print(buttons[i])
         buttons[i].disabled = True
     await OriginalMessage.edit(embed=QuizEmbed, view=view)
-    QuizRunning[message.guild.id] = False
 
 async def FetchQuiz(message):
     def Get():
