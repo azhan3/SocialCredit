@@ -338,7 +338,7 @@ async def CreateQuiz(message, num, right, Category, Difficulty, Correct, *args):
     QuizEmbed.set_thumbnail(url=Seal)
     QuizEmbed.set_footer(text=f"{QuizLimit}.0s.")
     # embed.set_image(url=args[-1])
-    await message.channel.send("@here SOCIAL CREDIT TEST")
+    await message.channel.send("<@619635169363755028> SOCIAL CREDIT TEST")
     OriginalMessage = await message.channel.send(embed=QuizEmbed, view=view)
 
     for i in range(5):
