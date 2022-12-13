@@ -16,7 +16,7 @@ intents = discord.Intents.default()
 intents.members = True
 bot = discord.Bot(intents=intents)
 username = urllib.parse.quote_plus('user')
-apiURI = 'mongodb://ALEX:rtXreOIhLVzGWIqz@cluster0-shard-00-00.mb4wu.mongodb.net:27017,cluster0-shard-00-01.mb4wu.mongodb.net:27017,cluster0-shard-00-02.mb4wu.mongodb.net:27017/myFirstDatabase?ssl=true&replicaSet=atlas-y3m5i3-shard-0&authSource=admin&retryWrites=true&w=majority'  # "mongodb+srv://ALEX:rtXreOIhLVzGWIqz@cluster0.mb4wu.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+apiURI = ''
 MongoClient = pymongo.MongoClient(apiURI)
 dbname = "myProject"
 db = MongoClient[dbname]
