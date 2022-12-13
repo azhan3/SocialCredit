@@ -431,4 +431,4 @@ async def on_message(message):
     await CheckWord(message)
 
 
-bot.run('ODkyNTA4ODgxOTY2NzUxODQ3.YVN7qw.95sXJonsBOc8LRDzoX59fIMXHvs')
+bot.run(project.env.TOKEN)
